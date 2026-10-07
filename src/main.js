@@ -34,7 +34,7 @@ class Game {
     if (params.get('q') && QUALITY[params.get('q')]) this.settings.quality = params.get('q');
     if (params.get('autoq') === '0') this.settings.autoQuality = false;
     this.hour = 17.0;
-    this.clock = new THREE.Clock();
+    this._last = performance.now();
     this.time = 0;
     this.story = new Story();
     this.audio = new AudioEngine(this.settings);
@@ -108,7 +108,7 @@ class Game {
     L(1, 'جاهز');
     this.ui.hideLoading();
     this.resize();
-    this.clock.start();
+    this._last = performance.now();
     requestAnimationFrame(() => this.loop());
     // بدء تلقائي بعد إعادة التحميل
     const auto = sessionStorage.getItem('bab.autostart');
@@ -208,7 +208,7 @@ class Game {
     this.updateObjectiveUI();
     this.updateMood();
     if (fresh) {
-      this.ui.toast('اقترب من الأشخاص والأغراض واضغط E للتفاعل', '', 'حرّك الفأرة للنظر · Shift للركض');
+      this.ui.toast('اقترب من الأشخاص والأغراض واضغط E للتفاعل', '', 'انقر على اللعبة لقفل المؤشر · Shift للركض');
       this.autosave();
     }
     this.canvas.focus();
@@ -461,7 +461,9 @@ class Game {
   // ───────── الحلقة ─────────
   loop() {
     requestAnimationFrame(() => this.loop());
-    const dt = Math.min(0.05, this.clock.getDelta());
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - this._last) / 1000);
+    this._last = now;
     this.time += dt;
     this.update(dt);
     this.render();
@@ -585,6 +587,7 @@ class Game {
       skipCinematic: () => this.cinematic.skip(),
       cineSeek: (a, b) => this.cinematic.seek(a, b),
       state: () => this.state,
+      info: () => ({ ...this.renderer.info.render, geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures }),
       ready: () => !!this.player,
     };
   }

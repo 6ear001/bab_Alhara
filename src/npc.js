@@ -48,6 +48,7 @@ export class NPC {
     if (!this.visible) return;
     const c = this.char, p = game.player.pos;
     let moving = false;
+    c.setDetail(game.camera.position.distanceToSquared(this.pos) < 18 * 18);
     const hour = game.hour;
 
     // العودة للبيت عند المغرب

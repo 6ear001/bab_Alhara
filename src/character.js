@@ -96,7 +96,7 @@ export class Character {
     torso.position.y = 0.3; torso.scale.set(1.15, 1, 0.72); this.torso = torso;
     if (!isRobe && !s.vestless) {
       // ياقة القميص + أكمام
-      const collar = this._m(G('collar', () => new THREE.TorusGeometry(0.06, 0.018, 6, 12)), shirt, spine);
+      const collar = this._m(G('collar', () => new THREE.TorusGeometry(0.06, 0.018, 6, 12)), shirt, spine, false);
       collar.position.set(0, 0.6, 0.02); collar.rotation.x = PI / 2.2;
     }
     if (s.sash) {
@@ -127,11 +127,11 @@ export class Character {
       const sh = new THREE.Group(); sh.position.set(side * 0.215, 0.53, 0); spine.add(sh);
       const ug = G('uarm' + isRobe, () => new THREE.CylinderGeometry(isRobe ? 0.055 : 0.045, isRobe ? 0.065 : 0.042, 0.28, 8).translate(0, -0.14, 0));
       this._m(ug, sleeve, sh);
-      this._m(G('shoulder', () => new THREE.SphereGeometry(0.052, 8, 6)), torsoMat === robe ? robe : (s.vestless ? shirt : vest), sh);
+      this._m(G('shoulder', () => new THREE.SphereGeometry(0.052, 8, 6)), torsoMat === robe ? robe : (s.vestless ? shirt : vest), sh, false);
       const el = new THREE.Group(); el.position.y = -0.28; sh.add(el);
       const fg = G('farm' + isRobe, () => new THREE.CylinderGeometry(isRobe ? 0.065 : 0.042, 0.034, 0.26, 8).translate(0, -0.13, 0));
       this._m(fg, sleeve, el);
-      const hand = this._m(G('hand', () => new THREE.SphereGeometry(0.04, 8, 6)), skin, el);
+      const hand = this._m(G('hand', () => new THREE.SphereGeometry(0.04, 8, 6)), skin, el, false);
       hand.position.y = -0.29; hand.scale.set(1, 1.35, 0.7);
       sh.rotation.z = side * 0.07;
       this.arms.push({ sh, el, side });
@@ -145,19 +145,20 @@ export class Character {
     head.scale.setScalar(hs);
     const cranium = this._m(G('cranium', () => new THREE.SphereGeometry(0.115, 20, 16)), skin, head);
     cranium.position.y = 0.115; cranium.scale.set(0.92, 1.1, 1.0);
+    const face = new THREE.Group(); head.add(face); this.face = face; this.detail = true;
     const jaw = this._m(G('jaw', () => new THREE.SphereGeometry(0.09, 16, 12)), skin, head);
     jaw.position.set(0, 0.04, 0.03); jaw.scale.set(1.0, 0.95, 0.95);
     for (const sd of [-1, 1]) {
-      const ear = this._m(G('ear', () => new THREE.SphereGeometry(0.026, 8, 6)), skin, head);
+      const ear = this._m(G('ear', () => new THREE.SphereGeometry(0.026, 8, 6)), skin, face, false);
       ear.position.set(sd * 0.103, 0.1, -0.005); ear.scale.set(0.5, 1, 0.8);
     }
     // أنف
-    const nose = this._m(G('nose', () => new THREE.ConeGeometry(0.015, 0.032, 8)), skin, head);
+    const nose = this._m(G('nose', () => new THREE.ConeGeometry(0.015, 0.032, 8)), skin, face, false);
     nose.position.set(0, 0.088, 0.117); nose.rotation.x = PI / 2.2; nose.scale.set(1, 1, 1);
     // العينان
     this.eyes = [];
     for (const sd of [-1, 1]) {
-      const eg = new THREE.Group(); eg.position.set(sd * 0.04, 0.125, 0.098); head.add(eg);
+      const eg = new THREE.Group(); eg.position.set(sd * 0.04, 0.125, 0.098); face.add(eg);
       const w = this._m(G('eyeW', () => new THREE.SphereGeometry(0.019, 10, 8)), white, eg, false);
       w.scale.set(1.1, 0.8, 0.55);
       const iris = this._m(G('iris', () => new THREE.SphereGeometry(0.0105, 8, 6)), stdMat(s.eye || '#2b1a10', { rough: 0.3 }), eg, false);
@@ -172,12 +173,12 @@ export class Character {
     // الحاجبان
     this.brows = [];
     for (const sd of [-1, 1]) {
-      const b = this._m(G('brow', () => new THREE.BoxGeometry(0.05, 0.011, 0.012)), stdMat(s.browColor || s.hair || '#2a211b'), head, false);
+      const b = this._m(G('brow', () => new THREE.BoxGeometry(0.05, 0.011, 0.012)), stdMat(s.browColor || s.hair || '#2a211b'), face, false);
       b.position.set(sd * 0.044, 0.158, 0.103); b.rotation.x = -0.15;
       this.brows.push({ b, side: sd, baseY: 0.158 });
     }
     // الفم
-    const mouth = new THREE.Group(); mouth.position.set(0, 0.042, 0.1); head.add(mouth); this.mouth = mouth;
+    const mouth = new THREE.Group(); mouth.position.set(0, 0.042, 0.1); face.add(mouth); this.mouth = mouth;
     this.mouthCav = this._m(G('cav', () => new THREE.SphereGeometry(0.02, 10, 8)), stdMat('#2a0c0c', { rough: 0.6 }), mouth, false);
     this.mouthCav.scale.set(1.6, 0.05, 0.4);
     this.lipU = this._m(G('lipU', () => new THREE.SphereGeometry(0.018, 10, 6)), lip, mouth, false);
@@ -235,12 +236,12 @@ export class Character {
     this.root.scale.setScalar(k);
     this.hipBaseYScaled = this.hipBaseY;
     if (s.heightK) body.scale.y = s.heightK;
-    this.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     this.setExpression('neutral', true);
   }
 
   _m(geo, mat, parent, shadow = true) {
     const m = new THREE.Mesh(geo, mat);
+    m.castShadow = shadow; m.receiveShadow = true;       // الأجزاء الصغيرة لا تُلقي ظلاً (توفير استدعاءات الرسم)
     parent.add(m);
     return m;
   }
@@ -252,6 +253,8 @@ export class Character {
   }
   setViseme(open, wide = 0) { this.mouthOpen = open; this.mouthWide = wide; }
   setTalking(v) { this._talkTarget = v; }
+  // تفاصيل الوجه (عيون/حواجب/فم/أنف) تُخفى عن بعد لتقليل استدعاءات الرسم
+  setDetail(on) { if (this.detail !== on) { this.detail = on; this.face.visible = on; } }
   setSit(v) { this.sit = v; }
   lookAt(v) { this._lookTarget = v; }
 
