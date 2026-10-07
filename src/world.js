@@ -45,6 +45,7 @@ export class World {
     this.clothLines = [];
     this.trees = [];
     this.layout = {};
+    this.footprints = [];
     this.rng = mulberry32(1337);
     scene.add(this.statics, this.dynamicGroup);
     this._mats();
@@ -55,7 +56,7 @@ export class World {
     const t = this.tex;
     const std = (set, o = {}) => new THREE.MeshStandardMaterial({ map: set.map, bumpMap: set.bump, bumpScale: o.bump ?? 2.2, roughness: o.rough ?? 0.9, metalness: o.metal ?? 0, color: o.color ?? 0xffffff });
     this.M = {
-      cobble: std(t.cobble, { bump: 4, rough: 0.88, color: 0xb0a490 }),
+      cobble: std(t.cobble, { bump: 4, rough: 0.88, color: 0xd2c6ac }),
       ablaq: std(t.ablaq, { bump: 3, rough: 0.85, color: 0xd8d0c0 }),
       plaster: std(t.plaster, { bump: 1.6, color: 0xd9c8aa }),
       plasterWarm: std(t.plasterWarm, { bump: 1.6, color: 0xd9c0a0 }),
@@ -198,6 +199,7 @@ export class World {
       this.box(pw, 0.55, pd, mat, px, h + 0.4, pz, null, 2.4);
     }
     if (!b.noCollide) this.collide(b.x0, b.z0, b.x1, b.z1);
+    this.footprints.push({ x0: b.x0, z0: b.z0, x1: b.x1, z1: b.z1, kind: 'solid' });
     const hasTank = this.rng() < 0.45;
     if (hasTank) {
       const tx = lerp(b.x0 + 1, b.x1 - 1, this.rng()), tz = lerp(b.z0 + 1, b.z1 - 1, this.rng());
@@ -400,6 +402,8 @@ export class World {
     const M = this.M, T = this.tex, rng = this.rng;
     const L = this.layout;
 
+    // أرض ترابية واسعة تحت كل شيء (تمنع ظهور الفراغ عند الأفق)
+    this.mk(planeGeo(900, 900, 6), M.dirt, null, 0, -0.03, 0, 0, 0, 0, { cast: false });
     // أرضية: حجارة مرصوفة
     this.mk(planeGeo(110, 80, 2.2), M.cobble, null, -4, 0, 0, 0, 0, 0, { cast: false });
     // طريق خارج البوابة (ترابي)
@@ -462,6 +466,7 @@ export class World {
     // أعمدة وأقواس أمامية
     for (const px of [-10 + 0.35, -6.2, -2.4, 1.4, 5.65]) {
       this.box(0.5, yg, 0.5, M.ablaq, px, yg / 2, -10.3, null, 1.2);
+      this.collide(px - 0.3, -10.6, px + 0.3, -10.0);
       this.box(0.65, 0.15, 0.65, M.wood, px, yg - 0.1, -10.3, null, 1);
     }
     // عارضة أمام العمود الأمامي
@@ -482,7 +487,7 @@ export class World {
     this.bench(4.8, -14.5, 3.4, PI / 2);
     // البرجولة (عريشة) أمام المقهى
     const py = 3.2;
-    for (const px of [-9.3, -5.2, -1.1, 3.0, 5.2]) this.box(0.18, py, 0.18, M.woodDark, px, py / 2, -5.7, null, 1);
+    for (const px of [-9.3, -5.2, -1.1, 3.0, 5.2]) { this.box(0.18, py, 0.18, M.woodDark, px, py / 2, -5.7, null, 1); this.collide(px - 0.14, -5.84, px + 0.14, -5.56); }
     for (let i = 0; i < 9; i++) this.box(0.1, 0.12, 4.7, M.woodDark, -9.3 + i * 1.75, py, -8.0, null, 1);
     for (let i = 0; i < 4; i++) this.box(14.8, 0.1, 0.12, M.woodDark, -2, py + 0.09, -9.8 + i * 1.3, null, 1);
     // أوراق العنب على العريشة
@@ -505,6 +510,7 @@ export class World {
     // جدار فاصل للمصطبة مع الساحة (درجة)
     this.box(15.6, 0.18, 0.4, M.ablaq, -2, 0.09, -5.4, null, 1.2);
     this.collide(-9.9, -22, -9.5, -10); this.collide(5.5, -22, 6, -10); this.collide(-10, -22, 6, -21.5);
+    this.footprints.push({ x0: -10, z0: -22, x1: 6, z1: -10, kind: 'open' });
   }
   get L() { return this.layout; }
 
@@ -547,6 +553,7 @@ export class World {
     this.signs.push({ text: 'بقالة الحارة', pos: [13.7, 3.05, -0.5], w: 3.0, h: 0.8, rotY: -PI / 2 });
     this.lantern(null, 13.4, 2.8, -4.1, { priority: 3 });
     this.layout.shop = { x: 15.8, z: -0.5 };
+    this.footprints.push({ x0: 14, z0: -4, x1: 27, z1: 3, kind: 'open' });
   }
 
   _gate() {
@@ -566,7 +573,7 @@ export class World {
     this.mk(arch, M.plasterLight, null, 0, 0, 11.95);
     // ورقتا الباب مفتوحتان
     for (const s of [-1, 1]) {
-      const pivot = this.group(s * 3.2, 0, 12.2, s * -1.25);
+      const pivot = this.group(s * 3.25, 0, 12.15, s * Math.PI * 0.47);
       const leaf = this.mk(archGeo(3.2, 6.2, 0.15), M.wood, pivot, -s * 1.6, 0, 0);
       for (let i = 0; i < 4; i++) this.box(3.0, 0.14, 0.06, M.iron, -s * 1.6, 0.8 + i * 1.3, 0.12, pivot, 1);
     }
@@ -581,8 +588,10 @@ export class World {
     this.layout.gate = { x: 0, z: 12 };
     // حاجز خلف البوابة
     this.collide(-3.3, 14.6, 3.3, 15); this.collide(-5, 12, -3.3, 16); this.collide(3.3, 12, 5, 16);
-    // كشك الحارس: مقعد وفانوس
+    // مقعدا الحارس والبائع الجوّال
     this.bench(7.4, 10.9, 2.6, 0);
+    this.bench(-7.4, 11.0, 2.4, 0);
+    this.footprints.push({ x0: -5.5, z0: 12, x1: 5.5, z1: 16, kind: 'solid' });
   }
 
   _fountain() {

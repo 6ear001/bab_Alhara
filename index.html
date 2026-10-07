@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#1b120b">
 <title>باب الحارة — الجزء الأول</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%231b120b'/%3E%3Cpath d='M12 56V28a20 20 0 0 1 40 0v28z' fill='%23c9973b'/%3E%3Cpath d='M20 56V30a12 12 0 0 1 24 0v26z' fill='%231b120b'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
 <script type="importmap">
 { "imports": { "three": "./vendor/three/build/three.module.js", "three/addons/": "./vendor/three/addons/" } }
@@ -11,6 +13,170 @@
 </head>
 <body>
 <canvas id="gl"></canvas>
-<script type="module" src="src/preview.js"></script>
+<div id="grade"></div>
+<div id="letterbox"><i class="top"></i><i class="bottom"></i></div>
+
+<!-- ───────── HUD ───────── -->
+<div id="hud" class="hidden">
+  <div id="objective">
+    <div class="obj-head"><span class="diamond"></span><span>الهدف</span></div>
+    <div id="objText"></div>
+    <div id="objTag"></div>
+  </div>
+  <div id="clock"><span id="clockTime">4:45 م</span><span id="clockIcon" class="sun"></span></div>
+  <canvas id="minimap" width="200" height="200"></canvas>
+  <div id="markers"></div>
+  <div id="prompt" class="hidden"><span class="key">E</span><span id="promptText"></span></div>
+  <div id="toasts"></div>
+  <div id="keyhints"><span><b>J</b> الدفتر</span><span><b>M</b> الخريطة</span><span><b>F5</b> حفظ</span><span><b>Esc</b> قائمة</span></div>
+</div>
+<div id="barks"></div>
+<div id="subtitle" class="hidden"></div>
+
+<!-- ───────── الحوار ───────── -->
+<div id="dialogue" class="hidden">
+  <div class="dlg-box">
+    <div class="dlg-head"><span id="dlgName"></span><span id="dlgRole"></span></div>
+    <div id="dlgText"></div>
+    <div id="dlgNext" class="hidden">اضغط مسافة ▼</div>
+    <div id="dlgChoices"></div>
+  </div>
+</div>
+<div id="card" class="hidden"><div class="card-in"><div id="cardTitle"></div><div id="cardSub"></div><div id="cardLabel"></div></div></div>
+<div id="banner" class="hidden"><div class="banner-in"><div class="banner-kicker">مهمة جديدة</div><div id="bannerTitle"></div><div id="bannerLabel"></div></div></div>
+<div id="skipHint" class="hidden">اضغط <b>مسافة</b> لتخطي المشهد</div>
+
+<!-- ───────── التحميل والقائمة ───────── -->
+<div id="loading">
+  <div class="ablaq-frame">
+    <div class="load-title">باب الحارة</div>
+    <div class="load-sub">الجزء الأول — نسخة تجريبية</div>
+    <div class="load-bar"><i id="loadFill"></i></div>
+    <div id="loadText">جارٍ بناء الحارة…</div>
+  </div>
+</div>
+
+<div id="title" class="hidden">
+  <div class="title-wrap">
+    <div class="title-kicker">لعبة مغامرات درامية ثلاثية الأبعاد</div>
+    <h1>باب الحارة</h1>
+    <h2>الجزء الأول</h2>
+    <div class="ablaq-bar"></div>
+    <div class="title-menu">
+      <button id="btnNew" class="btn primary">لعبة جديدة</button>
+      <button id="btnContinue" class="btn">متابعة</button>
+      <button id="btnSettings" class="btn">الإعدادات</button>
+      <button id="btnAbout" class="btn ghost">عن هذه النسخة</button>
+    </div>
+    <div class="title-note">تجربة تقنية قابلة للّعب · ١٥–٢٠ دقيقة · المهمة الأصلية: «ساعة أبو جلال»</div>
+  </div>
+</div>
+
+<!-- ───────── لوحات ───────── -->
+<div id="pause" class="panel hidden">
+  <div class="panel-in small">
+    <h3>قائمة التوقف</h3>
+    <div class="menu-col">
+      <button class="btn primary" data-act="resume">متابعة اللعب</button>
+      <button class="btn" data-act="journal">الدفتر</button>
+      <button class="btn" data-act="map">خريطة الحارة</button>
+      <button class="btn" data-act="save">حفظ يدوي</button>
+      <button class="btn" data-act="load">تحميل الحفظ اليدوي</button>
+      <button class="btn" data-act="settings">الإعدادات</button>
+      <button class="btn ghost" data-act="title">العودة للقائمة الرئيسية</button>
+    </div>
+  </div>
+</div>
+
+<div id="journal" class="panel hidden">
+  <div class="panel-in wide">
+    <div class="panel-head"><h3>الدفتر</h3><button class="x" data-close="journal">✕</button></div>
+    <div class="tabs" id="journalTabs">
+      <button data-tab="quest" class="on">المهمة</button>
+      <button data-tab="clues">الأدلة</button>
+      <button data-tab="relations">العلاقات والسمعة</button>
+      <button data-tab="items">الجرد</button>
+    </div>
+    <div id="journalBody"></div>
+  </div>
+</div>
+
+<div id="map" class="panel hidden">
+  <div class="panel-in wide">
+    <div class="panel-head"><h3>خريطة الحارة</h3><button class="x" data-close="map">✕</button></div>
+    <canvas id="mapCanvas" width="880" height="580"></canvas>
+    <div class="map-legend"><span><i class="dot you"></i>أنت</span><span><i class="dot npc"></i>أهل الحارة</span><span><i class="dot goal"></i>الهدف</span></div>
+  </div>
+</div>
+
+<div id="settings" class="panel hidden">
+  <div class="panel-in">
+    <div class="panel-head"><h3>الإعدادات</h3><button class="x" data-close="settings">✕</button></div>
+    <div class="set-grid">
+      <div class="set-row"><label>الجودة الرسومية</label>
+        <div class="seg" id="setQuality"><button data-v="low">منخفض</button><button data-v="medium">متوسط</button><button data-v="high">عالٍ</button></div></div>
+      <div class="set-row"><label for="setAutoQ">تخفيض الجودة تلقائياً عند البطء</label><input type="checkbox" id="setAutoQ"></div>
+      <div class="set-row"><label>الصوت العام</label><input type="range" id="setMaster" min="0" max="1" step="0.05"></div>
+      <div class="set-row"><label>الموسيقى</label><input type="range" id="setMusic" min="0" max="1" step="0.05"></div>
+      <div class="set-row"><label>المؤثرات</label><input type="range" id="setSfx" min="0" max="1" step="0.05"></div>
+      <div class="set-row"><label>الأجواء</label><input type="range" id="setAmb" min="0" max="1" step="0.05"></div>
+      <div class="set-row"><label>الحوار</label><input type="range" id="setVoice" min="0" max="1" step="0.05"></div>
+      <div class="set-row"><label for="setSubs">الترجمة العربية</label><input type="checkbox" id="setSubs"></div>
+      <div class="set-row"><label>حجم الخط</label>
+        <div class="seg" id="setSubSize"><button data-v="0.9">صغير</button><button data-v="1">عادي</button><button data-v="1.2">كبير</button></div></div>
+      <div class="set-row"><label>حساسية الكاميرا</label><input type="range" id="setSens" min="0.4" max="2" step="0.1"></div>
+      <div class="set-row"><label for="setInv">عكس المحور الرأسي</label><input type="checkbox" id="setInv"></div>
+      <div class="set-row"><label for="setMarker">علامة الهدف</label><input type="checkbox" id="setMarker"></div>
+      <div class="set-row"><label for="setBV">صوت عربي من المتصفح بدل الصوت المؤقت (تجريبي)</label><input type="checkbox" id="setBV"></div>
+    </div>
+  </div>
+</div>
+
+<div id="about" class="panel hidden">
+  <div class="panel-in wide">
+    <div class="panel-head"><h3>عن هذه النسخة التجريبية</h3><button class="x" data-close="about">✕</button></div>
+    <div class="about-body">
+      <h4>قابل للعب فعلياً</h4>
+      <ul>
+        <li>قطاع من الحارة: الساحة والبحرة والمقهى والدكان وباب الحارة والزقاق الغربي، بدورة نهار/ليل.</li>
+        <li>شخصية قابلة للعب (نديم) وثلاث شخصيات محاوَرة بحوار متفرع يؤثر في الثقة والسمعة.</li>
+        <li>مهمة تحقيق <b>أصلية</b> مضافة للعبة، بأدلة وجرد ودفتر وخريطة وأربع نهايات.</li>
+        <li>مشهد افتتاحي في المحرك، موسيقى مولَّدة على المقامات، أجواء صوتية مكانية، حفظ تلقائي ويدوي.</li>
+      </ul>
+      <h4>مؤقت ويحتاج أصولاً ومراجع</h4>
+      <ul>
+        <li><b>النماذج:</b> الشخصيات مجسَّمة بأشكال أولية مؤقتة، وتُستبدل بنماذج واقعية حين تتوفر الأصول والموافقات.</li>
+        <li><b>الأصوات:</b> صوت الحوار مؤقت ومولَّد (مع ترجمة كاملة)، ويُستبدل بتسجيلات شامية أصلية.</li>
+        <li><b>المسلسل:</b> لم تُزوَّد اللعبة بمراجع الموسم الأول، لذلك الأسماء والأدوار مؤقتة ولم تُنسب إلى المسلسل أي أحداث.</li>
+        <li><b>الممثلون:</b> لا تُستخدم هيئاتهم ولا أصواتهم دون تراخيص وموافقات موثّقة.</li>
+      </ul>
+      <h4>التحكم</h4>
+      <p>WASD للحركة · Shift للركض · الفأرة للكاميرا (انقر لقفل المؤشر) · E للتفاعل · مسافة/نقر لمتابعة الحوار · 1–4 لاختيار الإجابة · J الدفتر · M الخريطة · F5 حفظ · Esc قائمة.</p>
+    </div>
+  </div>
+</div>
+
+<div id="ending" class="panel hidden">
+  <div class="panel-in wide ending-in">
+    <div class="end-kicker">نهاية المهمة — مهمة أصلية مضافة للعبة</div>
+    <h2 id="endTitle"></h2>
+    <div id="endTag"></div>
+    <div id="endEpilogue"></div>
+    <div class="end-grid">
+      <div><h4>الثقة</h4><div id="endTrust"></div></div>
+      <div><h4>السمعة</h4><div id="endRep"></div></div>
+    </div>
+    <h4>قراراتك</h4>
+    <ul id="endDecisions"></ul>
+    <div class="menu-row">
+      <button class="btn primary" id="endContinue">تابع التجوّل في الحارة</button>
+      <button class="btn" id="endAgain">جرّب قراراً آخر (لعبة جديدة)</button>
+      <button class="btn ghost" id="endTitleBtn">القائمة الرئيسية</button>
+    </div>
+  </div>
+</div>
+
+<div id="fade"></div>
+<script type="module" src="src/main.js"></script>
 </body>
 </html>

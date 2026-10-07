@@ -12,9 +12,9 @@ const KEYS = [
   { e: -14, fog: '#0c1426', hs: '#2a4272', hg: '#10131c', sun: '#6a7fb0', si: 0.0, hi: 1.1, ex: 1.15 },
   { e: -4,  fog: '#2c2540', hs: '#4a4570', hg: '#1a1620', sun: '#ff7a3a', si: 0.0, hi: 0.8, ex: 1.0 },
   { e: 0,   fog: '#b0603a', hs: '#c07a5c', hg: '#3a2418', sun: '#ff7a2a', si: 0.9, hi: 0.6, ex: 0.85 },
-  { e: 6,   fog: '#d29060', hs: '#a8a0b8', hg: '#4a3626', sun: '#ff9a48', si: 2.6, hi: 0.5, ex: 0.7 },
-  { e: 18,  fog: '#d6bfa0', hs: '#8fa6c4', hg: '#5a4a38', sun: '#ffc88a', si: 3.4, hi: 0.5, ex: 0.62 },
-  { e: 55,  fog: '#c4d0dc', hs: '#a8c8ee', hg: '#665a4a', sun: '#fff1dc', si: 3.8, hi: 0.7, ex: 0.6 },
+  { e: 6,   fog: '#d29060', hs: '#a8a0b8', hg: '#4a3626', sun: '#ff9a48', si: 2.8, hi: 0.62, ex: 0.88 },
+  { e: 18,  fog: '#d6bfa0', hs: '#8fa6c4', hg: '#5a4a38', sun: '#ffc88a', si: 3.4, hi: 0.62, ex: 0.9 },
+  { e: 55,  fog: '#c4d0dc', hs: '#a8c8ee', hg: '#665a4a', sun: '#fff1dc', si: 3.8, hi: 0.8, ex: 0.8 },
 ];
 const _c = KEYS.map((k) => ({
   ...k, fogC: new THREE.Color(k.fog), hsC: new THREE.Color(k.hs), hgC: new THREE.Color(k.hg), sunC: new THREE.Color(k.sun),
@@ -151,7 +151,7 @@ export class SkyDome {
 
     this.scene.fog.color.copy(fog);
     this.scene.fog.density = lerp(0.016, 0.011, this.dayFactor) + this.duskFactor * 0.003;
-    this.hemi.color.copy(hs); this.hemi.groundColor.copy(hg); this.hemi.intensity = hi * 0.85;
+    this.hemi.color.copy(hs); this.hemi.groundColor.copy(hg); this.hemi.intensity = hi * (this.quality.ibl ? 0.9 : 1.5);
     this.sun.color.copy(sc); this.sun.intensity = si;
     this.moonLight.intensity = this.nightFactor * 1.1;
 
